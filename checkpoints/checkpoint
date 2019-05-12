@@ -1,0 +1,2 @@
+model_checkpoint_path: "hybrid.ckpt"
+all_model_checkpoint_paths: "hybrid.ckpt"
