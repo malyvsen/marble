@@ -24,7 +24,7 @@ class Generator:
         encoding = representations[-1]
 
     with tf.variable_scope('decoder'):
-        representations.append(utils.zoom_nearest_neighbor(encoding, zoom=2))
+        representations.append(utils.zoom_nearest_neighbor(representations[-1], zoom=2))
         representations.append(tf.layers.conv2d(representations[-1], filters=16, kernel_size=3, padding='same', activation=tf.nn.relu))
         representations.append(utils.zoom_nearest_neighbor(representations[-1], zoom=2))
         representations.append(tf.layers.conv2d(representations[-1], filters=16, kernel_size=3, padding='same', activation=tf.nn.relu))
