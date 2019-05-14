@@ -50,11 +50,9 @@ class Discriminator:
         inputs = Generator.outputs # will be fed directly if it's a real image
 
         representations = [inputs]
+        representations.append(tf.layers.conv2d(representations[-1], filters=32, kernel_size=7, padding='same', activation=tf.nn.relu))
+        representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
         representations.append(tf.layers.conv2d(representations[-1], filters=32, kernel_size=5, padding='same', activation=tf.nn.relu))
-        representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
-        representations.append(tf.layers.conv2d(representations[-1], filters=32, kernel_size=3, padding='same', activation=tf.nn.relu))
-        representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
-        representations.append(tf.layers.conv2d(representations[-1], filters=16, kernel_size=3, padding='same', activation=tf.nn.relu))
         representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
         representations.append(tf.layers.conv2d(representations[-1], filters=1, kernel_size=3, padding='same', activation=tf.nn.relu))
         representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
@@ -73,7 +71,7 @@ class Discriminator:
 
 #%% adversarial training setup
 Generator.adversarial_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(Discriminator.targets), Discriminator.logits)
-Generator.loss = Generator.mse_loss + Generator.adversarial_loss
+Generator.loss = utils.average([Generator.mse_loss, Generator.adversarial_loss], weights=[1.0, 1.0])
 Generator.optimizer = tf.train.AdamOptimizer(1e-3).minimize(Generator.loss, var_list=Generator.vars)
 
 
