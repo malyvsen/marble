@@ -51,9 +51,11 @@ class Discriminator:
         inputs = Generator.outputs # will be fed directly if it's a real image
 
         representations = [inputs]
-        representations.append(tf.layers.conv2d(representations[-1], filters=32, kernel_size=7, padding='same', activation=tf.nn.relu))
+        wide = tf.layers.conv2d(representations[-1], filters=8, kernel_size=(15, 5), padding='same', activation=tf.nn.relu)
+        high = tf.layers.conv2d(representations[-1], filters=8, kernel_size=(5, 15), padding='same', activation=tf.nn.relu)
+        representations.append(tf.concat((wide, high), axis=-1))
         representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
-        representations.append(tf.layers.conv2d(representations[-1], filters=32, kernel_size=5, padding='same', activation=tf.nn.relu))
+        representations.append(tf.layers.conv2d(representations[-1], filters=16, kernel_size=5, padding='same', activation=tf.nn.relu))
         representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
         representations.append(tf.layers.conv2d(representations[-1], filters=1, kernel_size=3, padding='same', activation=tf.nn.relu))
         representations.append(tf.layers.max_pooling2d(representations[-1], pool_size=(2, 2), strides=(2, 2), padding='same'))
