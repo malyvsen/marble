@@ -2,6 +2,7 @@
 from tqdm import trange
 import tensorflow as tf
 import numpy as np
+import random
 import images
 import utils
 
@@ -81,8 +82,11 @@ session = tf.Session()
 saver = tf.train.Saver()
 save_location  = 'checkpoints/hybrid.ckpt'
 
+fakes_library = [] # used to prevent instability
 
-def train(num_steps, demo_interval=16, batch_size=16):
+
+def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batch_size=16):
+    global fakes_library
     for i in trange(num_steps):
         if i % demo_interval == 0:
             decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: images.batch(4)[0]})
@@ -93,7 +97,13 @@ def train(num_steps, demo_interval=16, batch_size=16):
         session.run(Discriminator.optimizer, feed_dict=feed)
         # train generator on batch & tell discriminator it's seeing fakes
         feed = {Generator.inputs: noised_images, Generator.targets: real_images, Discriminator.targets: np.zeros((batch_size,))}
-        session.run((Generator.optimizer, Discriminator.optimizer), feed_dict=feed)
+        new_fakes, _, _ = session.run((Generator.outputs, Generator.optimizer, Discriminator.optimizer), feed_dict=feed)
+        # add some newly produced fakes to library
+        fakes_library += list(new_fakes[:stored_fakes])
+        # train discriminator on some of the fakes stored in the library
+        old_fakes = random.choices(fakes_library, k=fakes_batch_size)
+        feed = {Discriminator.inputs: old_fakes, Discriminator.targets: np.zeros((batch_size,))}
+        session.run(Discriminator.optimizer, feed_dict=feed)
 
 
 if os.path.isfile(save_location + '.index'):
