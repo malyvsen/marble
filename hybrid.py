@@ -77,7 +77,6 @@ Generator.optimizer = tf.train.AdamOptimizer(1e-3).minimize(Generator.loss, var_
 
 
 #%% training/loading
-import os
 session = tf.Session()
 saver = tf.train.Saver()
 save_location  = 'checkpoints/hybrid.ckpt'
@@ -106,15 +105,16 @@ def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batc
         session.run(Discriminator.optimizer, feed_dict=feed)
 
 
-if os.path.isfile(save_location + '.index'):
+try:
     saver.restore(session, save_location)
-else:
+except:
     session.run(tf.global_variables_initializer())
     train(num_steps=1024)
     saver.save(session, save_location)
 
 
 #%% test
+import os
 import skimage
 from glob import glob
 
