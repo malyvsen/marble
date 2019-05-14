@@ -113,9 +113,11 @@ def test(path, save=False):
     for file in glob(path):
         if not os.path.isfile(file):
             continue
+        if file.find('_marbled') >= 0:
+            continue
         original = images.to_rgb(skimage.io.imread(file))
         generated = session.run(Generator.outputs, feed_dict={Generator.inputs: [original]})
-        images.show(generated, save_as=file.replace('.', '_marbled.') if save else None)
+        images.show(generated, save_as='_marbled.'.join(file.rsplit('.', 1)) if save else None)
 
 
 test('test/*', save=True)
