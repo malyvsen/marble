@@ -109,7 +109,9 @@ def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batc
 
 try:
     saver.restore(session, save_location)
-except:
+except (tf.OpError, ValueError) as error:
+    print(f'An error occured: {error}')
+    print('Assuming network is to be retrained...')
     session.run(tf.global_variables_initializer())
     train(num_steps=1024)
     saver.save(session, save_location)
