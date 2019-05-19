@@ -69,12 +69,13 @@ class Discriminator:
 
     targets = tf.placeholder(dtype=tf.float32, shape=(None))
     loss = tf.losses.sigmoid_cross_entropy(targets, logits)
-    optimizer = tf.train.AdamOptimizer(1e-3).minimize(loss, var_list = vars)
+    optimizer = tf.train.AdamOptimizer(5e-4).minimize(loss, var_list = vars)
 
 
 #%% adversarial training setup
 Generator.adversarial_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(Discriminator.targets), Discriminator.logits)
-Generator.loss = utils.average([Generator.mse_loss, Generator.adversarial_loss], weights=[1.0, 1.0])
+Generator.adversarial_weight = tf.placeholder(tf.float32, shape=())
+Generator.loss = utils.average([Generator.mse_loss, Generator.adversarial_loss], weights=[1-Generator.adversarial_weight, Generator.adversarial_weight])
 Generator.optimizer = tf.train.AdamOptimizer(1e-3).minimize(Generator.loss, var_list=Generator.vars)
 
 
@@ -86,8 +87,10 @@ save_location  = 'checkpoints/hybrid.ckpt'
 fakes_library = [] # used to prevent instability
 
 
-def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batch_size=16):
+def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batch_size=16, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
     global fakes_library
+    adversarial_weight_steps = np.array(adversarial_weight_steps)
+
     for i in trange(num_steps):
         if i % demo_interval == 0:
             decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: images.batch(4)[0]})
@@ -97,7 +100,8 @@ def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batc
         feed = {Discriminator.inputs: real_images, Discriminator.targets: np.ones((batch_size,))}
         session.run(Discriminator.optimizer, feed_dict=feed)
         # train generator on batch & tell discriminator it's seeing fakes
-        feed = {Generator.inputs: noised_images, Generator.targets: real_images, Discriminator.targets: np.zeros((batch_size,))}
+        adversarial_weight = np.interp(i / (num_steps - 1), adversarial_weight_steps[:, 0], adversarial_weight_steps[:, 1])
+        feed = {Generator.inputs: noised_images, Generator.targets: real_images, Discriminator.targets: np.zeros((batch_size,)), Generator.adversarial_weight: adversarial_weight}
         new_fakes, _, _ = session.run((Generator.outputs, Generator.optimizer, Discriminator.optimizer), feed_dict=feed)
         # add some newly produced fakes to library
         fakes_library += list(new_fakes[:stored_fakes])
