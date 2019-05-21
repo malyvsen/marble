@@ -8,4 +8,4 @@ Turning people into marble statues with the power of AI.
 Put some images in the `test` directory and run `hybrid.py`. If you want to train the model fresh, just delete the files from `checkpoints`.
 
 ## requirements
-`tensorflow skimage tqdm imgaug`
+`tensorflow numpy matplotlib scikit-image tqdm imgaug ipykernel`
