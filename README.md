@@ -5,7 +5,7 @@ Turning people into marble statues with the power of AI.
 </div>
 
 ## usage
-Put some images in the `test` directory and run `ae.py`. If you want to train the model fresh, just delete the files from `checkpoints`.
+Put some images in the `test` directory and run `hybrid.py`. If you want to train the model fresh, just delete the files from `checkpoints`.
 
 ## requirements
-`tensorflow skimage tqdm`
+`tensorflow skimage tqdm imgaug`
