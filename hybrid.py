@@ -14,15 +14,15 @@ class Generator:
 
         representations = [inputs]
         representations.append(tf.layers.conv2d(representations[-1], filters=32, kernel_size=5, padding='same', activation=tf.nn.relu))
-        representations.append(utils.max_pooling(representations[-1], pool_size=2))
+        representations.append(utils.pool(representations[-1], 'MAX', pool_size=2))
         representations.append(tf.layers.conv2d(representations[-1], filters=32, kernel_size=3, padding='same', activation=tf.nn.relu))
-        representations.append(utils.max_pooling(representations[-1], pool_size=2))
+        representations.append(utils.pool(representations[-1], 'MAX', pool_size=2))
         representations.append(tf.layers.conv2d(representations[-1], filters=16, kernel_size=3, padding='same', activation=tf.nn.relu))
-        representations.append(utils.max_pooling(representations[-1], pool_size=2))
-        skip = utils.max_pooling(inputs, pool_size=8) # skip connection directly to pixels
+        representations.append(utils.pool(representations[-1], 'MAX', pool_size=2))
+        skip = utils.pool(inputs, 'AVG', pool_size=8) # skip connection directly to pixels
         skip_appended = tf.concat((representations[-1], skip), axis=-1)
         representations.append(tf.layers.conv2d(representations[-1], filters=16, kernel_size=3, padding='same', activation=tf.nn.relu))
-        representations.append(utils.max_pooling(representations[-1], pool_size=2))
+        representations.append(utils.pool(representations[-1], 'MAX', pool_size=2))
 
         encoding = representations[-1]
 
@@ -56,7 +56,7 @@ class Discriminator:
         wide = tf.layers.conv2d(representations[-1], filters=8, kernel_size=(15, 5), padding='same', activation=tf.nn.relu)
         high = tf.layers.conv2d(representations[-1], filters=8, kernel_size=(5, 15), padding='same', activation=tf.nn.relu)
         representations.append(tf.concat((wide, high), axis=-1))
-        representations.append(utils.max_pooling(representations[-1], pool_size=4))
+        representations.append(utils.pool(representations[-1], 'MAX', pool_size=4))
         representations.append(tf.layers.conv2d(representations[-1], filters=1, kernel_size=5, padding='same', activation=tf.nn.relu))
 
         logits = tf.reduce_mean(representations[-1], axis=(1, 2, 3)) # 0 for fake, 1 for real
