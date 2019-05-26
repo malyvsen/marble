@@ -101,7 +101,7 @@ def train(num_steps, demo_interval=16, batch_size=16, fakes_batch_size=16, max_s
         if (i + 1) % demo_interval == 0:
             decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: demo_inputs})
             demo_outputs.append(images.demo_board(decoded))
-            # images.show(decoded)
+            images.show(decoded)
         noised_images, real_images = images.batch(batch_size)
         # train discriminator on the batch of real images
         feed = {Discriminator.inputs: real_images, Discriminator.targets: np.ones((batch_size,))}
