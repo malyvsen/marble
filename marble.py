@@ -93,12 +93,12 @@ demo_inputs = images.batch(4)[0]
 demo_outputs = []
 
 
-def train(num_steps, num_demos=64, batch_size=16, stored_fakes=1, fakes_batch_size=16, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
+def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batch_size=16, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
     global fakes_library, demo_inputs, demo_outputs
     adversarial_weight_steps = np.array(adversarial_weight_steps)
 
     for i in trange(num_steps):
-        if ((i + 1) * num_demos) % num_steps == 0:
+        if (i + 1) % demo_interval == 0:
             decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: demo_inputs})
             demo_outputs.append(images.demo_board(decoded))
             images.show(decoded)
