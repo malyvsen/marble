@@ -93,7 +93,7 @@ demo_inputs = images.batch(4)[0]
 demo_outputs = []
 
 
-def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batch_size=16, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
+def train(num_steps, demo_interval=16, batch_size=16, fakes_batch_size=16, max_stored_fakes=64, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
     global fakes_library, demo_inputs, demo_outputs
     adversarial_weight_steps = np.array(adversarial_weight_steps)
 
@@ -101,7 +101,7 @@ def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batc
         if (i + 1) % demo_interval == 0:
             decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: demo_inputs})
             demo_outputs.append(images.demo_board(decoded))
-            images.show(decoded)
+            # images.show(decoded)
         noised_images, real_images = images.batch(batch_size)
         # train discriminator on the batch of real images
         feed = {Discriminator.inputs: real_images, Discriminator.targets: np.ones((batch_size,))}
@@ -111,7 +111,9 @@ def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batc
         feed = {Generator.inputs: noised_images, Generator.targets: real_images, Discriminator.targets: np.zeros((batch_size,)), Generator.adversarial_weight: adversarial_weight}
         new_fakes, _, _ = session.run((Generator.outputs, Generator.optimizer, Discriminator.optimizer), feed_dict=feed)
         # add some newly produced fakes to library
-        fakes_library += list(new_fakes[:stored_fakes])
+        fakes_library += list(new_fakes[:1])
+        if len(fakes_library) > max_stored_fakes:
+            del fakes_library[random.randrange(len(fakes_library))] # prevent overfilling memory
         # train discriminator on some of the fakes stored in the library
         old_fakes = random.choices(fakes_library, k=fakes_batch_size)
         feed = {Discriminator.inputs: old_fakes, Discriminator.targets: np.zeros((batch_size,))}
