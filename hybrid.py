@@ -52,17 +52,22 @@ class Discriminator:
     with tf.variable_scope('discriminator'):
         inputs = Generator.outputs # will be fed directly if it's a real image
 
-        representations = [inputs]
-        wide = tf.layers.conv2d(representations[-1], filters=8, kernel_size=(15, 5), padding='same', activation=tf.nn.relu)
-        high = tf.layers.conv2d(representations[-1], filters=8, kernel_size=(5, 15), padding='same', activation=tf.nn.relu)
-        representations.append(tf.concat((wide, high), axis=-1))
-        representations.append(utils.pool(representations[-1], 'MAX', pool_size=4))
-        representations.append(tf.layers.conv2d(representations[-1], filters=1, kernel_size=5, padding='same', activation=tf.nn.relu))
+        micro = [inputs] # for errors in small scale
+        wide_micro = tf.layers.conv2d(micro[-1], filters=8, kernel_size=(7, 3), padding='same', activation=tf.nn.relu)
+        high_micro = tf.layers.conv2d(micro[-1], filters=8, kernel_size=(3, 7), padding='same', activation=tf.nn.relu)
+        micro.append(tf.concat((wide_micro, high_micro), axis=-1))
+        micro.append(utils.pool(micro[-1], 'MAX', pool_size=4))
+        micro.append(tf.layers.conv2d(micro[-1], filters=4, kernel_size=5, padding='same', activation=tf.nn.relu))
 
-        logits = tf.reduce_mean(representations[-1], axis=(1, 2, 3)) # 0 for fake, 1 for real
-        representations.append(logits)
-        outputs = tf.nn.sigmoid(logits)
-        representations.append(outputs)
+        macro = [utils.pool(inputs, 'AVG', pool_size=4)] # for errors in large scale
+        wide_macro = tf.layers.conv2d(macro[-1], filters=8, kernel_size=(7, 3), padding='same', activation=tf.nn.relu)
+        high_macro = tf.layers.conv2d(macro[-1], filters=8, kernel_size=(3, 7), padding='same', activation=tf.nn.relu)
+        macro.append(tf.concat((wide_macro, high_macro), axis=-1))
+        macro.append(utils.pool(macro[-1], 'MAX', pool_size=4))
+        macro.append(tf.layers.conv2d(macro[-1], filters=4, kernel_size=5, padding='same', activation=tf.nn.relu))
+
+        logits = tf.reduce_mean(micro[-1], axis=(1, 2, 3)) + tf.reduce_mean(macro[-1], axis=(1, 2, 3))
+        outputs = tf.nn.sigmoid(logits) # 0 for fake, 1 for real
 
     vars = tf.trainable_variables(scope='discriminator')
 
@@ -75,7 +80,7 @@ class Discriminator:
 Generator.adversarial_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(Discriminator.targets), Discriminator.logits)
 Generator.adversarial_weight = tf.placeholder(tf.float32, shape=())
 Generator.loss = utils.average([Generator.mse_loss, Generator.adversarial_loss], weights=[1-Generator.adversarial_weight, Generator.adversarial_weight])
-Generator.optimizer = tf.train.AdamOptimizer(1e-3).minimize(Generator.loss, var_list=Generator.vars)
+Generator.optimizer = tf.train.AdamOptimizer(5e-4).minimize(Generator.loss, var_list=Generator.vars)
 
 
 #%% training/loading
