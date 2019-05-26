@@ -128,7 +128,7 @@ except (tf.OpError, ValueError) as error:
     session.run(tf.global_variables_initializer())
     train(num_steps=1024)
     saver.save(session, save_location)
-    images.save_gif('./test/training.gif', demo_outputs)
+    images.save_gif('./training.gif', demo_outputs)
 
 
 #%% test
