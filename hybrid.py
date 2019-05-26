@@ -89,15 +89,18 @@ saver = tf.train.Saver()
 save_location  = 'checkpoints/hybrid.ckpt'
 
 fakes_library = [] # used to prevent instability
+demo_inputs = images.batch(4)[0]
+demo_outputs = []
 
 
-def train(num_steps, demo_interval=16, batch_size=16, stored_fakes=1, fakes_batch_size=16, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
-    global fakes_library
+def train(num_steps, num_demos=64, batch_size=16, stored_fakes=1, fakes_batch_size=16, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
+    global fakes_library, demo_inputs, demo_outputs
     adversarial_weight_steps = np.array(adversarial_weight_steps)
 
     for i in trange(num_steps):
-        if i % demo_interval == 0:
-            decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: images.batch(4)[0]})
+        if ((i + 1) * num_demos) % num_steps == 0:
+            decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: demo_inputs})
+            demo_outputs.append(images.demo_board(decoded))
             images.show(decoded)
         noised_images, real_images = images.batch(batch_size)
         # train discriminator on the batch of real images
@@ -123,6 +126,7 @@ except (tf.OpError, ValueError) as error:
     session.run(tf.global_variables_initializer())
     train(num_steps=1024)
     saver.save(session, save_location)
+    images.save_gif('./test/training.gif', demo_outputs)
 
 
 #%% test

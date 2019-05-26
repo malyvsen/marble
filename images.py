@@ -4,6 +4,7 @@ import skimage
 import matplotlib.pyplot as plt
 import numpy as np
 from imgaug import augmenters as iaa
+from imageio import mimsave
 
 
 #%% loading
@@ -48,9 +49,20 @@ def batch(size):
     return noised, augmented
 
 
+def demo_board(images):
+    return np.clip(np.concatenate(images, 1).astype(np.uint8), 0, 255)
+
+
 def show(images, save_as=None):
-    to_show = np.clip(np.concatenate(images, 1).astype(np.uint8), 0, 255)
+    to_show = demo_board(images)
     if save_as is not None:
         skimage.io.imsave(save_as, to_show)
     plt.imshow(to_show)
     plt.show()
+    return to_show
+
+
+def save_gif(path, demo_boards, duration=None):
+    if duration is None:
+        duration = len(images) / 30
+    mimsave(path, demo_boards, duration=duration)
