@@ -7,7 +7,7 @@ import images
 import utils
 
 
-#%% architecture
+#%% generator architecture
 class Generator:
     with tf.variable_scope('encoder'):
         inputs = tf.placeholder(dtype=tf.float32, shape=(None, None, None, 3))
@@ -45,9 +45,11 @@ class Generator:
 
     targets = tf.placeholder(dtype=tf.float32, shape=(None, None, None, 3))
     mse_loss = tf.reduce_mean(tf.square(outputs - targets)) / (255 ** 2) # normalized into interval of size 1
+    ssim_loss = tf.reduce_mean(tf.image.ssim(outputs, targets, max_val=255)) / 2 # also normalized into interval of size 1
     # training definition continued after discriminator is initialized
 
 
+#%% discriminator architecture
 class Discriminator:
     with tf.variable_scope('discriminator'):
         inputs = Generator.outputs # will be fed directly if it's a real image
@@ -78,8 +80,10 @@ class Discriminator:
 
 #%% adversarial training setup
 Generator.adversarial_loss = tf.losses.sigmoid_cross_entropy(tf.ones_like(Discriminator.targets), Discriminator.logits)
+Generator.mse_weight = tf.placeholder(tf.float32, shape=())
+Generator.ssim_weight = tf.placeholder(tf.float32, shape=())
 Generator.adversarial_weight = tf.placeholder(tf.float32, shape=())
-Generator.loss = utils.average([Generator.mse_loss, Generator.adversarial_loss], weights=[1-Generator.adversarial_weight, Generator.adversarial_weight])
+Generator.loss = utils.average([Generator.mse_loss, Generator.ssim_loss, Generator.adversarial_loss], weights=[Generator.mse_weight, Generator.ssim_weight, Generator.adversarial_weight])
 Generator.optimizer = tf.train.AdamOptimizer(5e-4).minimize(Generator.loss, var_list=Generator.vars)
 
 
@@ -93,12 +97,11 @@ demo_inputs = images.batch(4)[0]
 demo_outputs = []
 
 
-def train(num_steps, demo_interval=16, batch_size=16, fakes_batch_size=16, max_stored_fakes=64, adversarial_weight_steps=[(0, 0), (.25, .5), (1, .75)]):
+def train(num_steps, loss_weighter, demo_interval=16, batch_size=16, fakes_batch_size=16, max_stored_fakes=64):
     global fakes_library, demo_inputs, demo_outputs
-    adversarial_weight_steps = np.array(adversarial_weight_steps)
 
-    for i in trange(num_steps):
-        if (i + 1) % demo_interval == 0:
+    for step in trange(num_steps):
+        if (step + 1) % demo_interval == 0:
             decoded = session.run(Generator.outputs, feed_dict={Generator.inputs: demo_inputs})
             demo_outputs.append(images.demo_board(decoded))
             images.show(decoded)
@@ -107,8 +110,8 @@ def train(num_steps, demo_interval=16, batch_size=16, fakes_batch_size=16, max_s
         feed = {Discriminator.inputs: real_images, Discriminator.targets: np.ones((batch_size,))}
         session.run(Discriminator.optimizer, feed_dict=feed)
         # train generator on batch & tell discriminator it's seeing fakes
-        adversarial_weight = np.interp(i / (num_steps - 1), adversarial_weight_steps[:, 0], adversarial_weight_steps[:, 1])
-        feed = {Generator.inputs: noised_images, Generator.targets: real_images, Discriminator.targets: np.zeros((batch_size,)), Generator.adversarial_weight: adversarial_weight}
+        feed = {Generator.inputs: noised_images, Generator.targets: real_images, Discriminator.targets: np.zeros((batch_size,))}
+        feed.update(loss_weighter(step / (num_steps - 1)))
         new_fakes, _, _ = session.run((Generator.outputs, Generator.optimizer, Discriminator.optimizer), feed_dict=feed)
         # add some newly produced fakes to library
         fakes_library += list(new_fakes[:1])
@@ -120,13 +123,20 @@ def train(num_steps, demo_interval=16, batch_size=16, fakes_batch_size=16, max_s
         session.run(Discriminator.optimizer, feed_dict=feed)
 
 
+def loss_weighter(progress):
+    return {
+        Generator.mse_weight: np.interp(progress, (0, .5), (2, 1)),
+        Generator.ssim_weight: np.interp(progress, (0, .5), (0, 1)),
+        Generator.adversarial_weight: np.interp(progress, (0, 1), (0, 0))}
+
+
 try:
     saver.restore(session, save_location)
 except (tf.OpError, ValueError) as error:
     print(f'An error occured: {error}')
     print('Assuming network is to be retrained...')
     session.run(tf.global_variables_initializer())
-    train(num_steps=1024)
+    train(num_steps=512, loss_weighter=loss_weighter)
     saver.save(session, save_location)
     images.save_gif('./training.gif', demo_outputs)
 
