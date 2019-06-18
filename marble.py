@@ -45,7 +45,7 @@ class Generator:
 
     targets = tf.placeholder(dtype=tf.float32, shape=(None, None, None, 3))
     mse_loss = tf.reduce_mean(tf.square(outputs - targets)) / (255 ** 2) # normalized into interval of size 1
-    ssim_loss = tf.reduce_mean(tf.image.ssim(outputs, targets, max_val=255)) / 2 # also normalized into interval of size 1
+    ssim_loss = -tf.reduce_mean(tf.image.ssim(outputs, targets, max_val=255)) / 2 # also normalized into interval of size 1
     # training definition continued after discriminator is initialized
 
 
