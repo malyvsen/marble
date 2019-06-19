@@ -21,7 +21,7 @@ images = np.array(images)
 
 
 #%% augmentation pipeline
-augmented_shape = (256, 256) # weird shape so that convolutions are happy
+augmented_shape = (64, 64)
 
 augmenter = iaa.Sequential([
     iaa.Fliplr(p=0.5),

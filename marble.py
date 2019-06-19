@@ -97,7 +97,7 @@ demo_inputs = images.batch(4)[0]
 demo_outputs = []
 
 
-def train(num_steps, loss_weighter, demo_interval=16, batch_size=16, fakes_batch_size=16, max_stored_fakes=64):
+def train(num_steps, loss_weighter, demo_interval=64, batch_size=16, fakes_batch_size=16, max_stored_fakes=64):
     global fakes_library, demo_inputs, demo_outputs
 
     for step in trange(num_steps):
@@ -125,9 +125,9 @@ def train(num_steps, loss_weighter, demo_interval=16, batch_size=16, fakes_batch
 
 def loss_weighter(progress):
     return {
-        Generator.mse_weight: np.interp(progress, (0, .5), (2, 1)),
-        Generator.ssim_weight: np.interp(progress, (0, .5), (0, 1)),
-        Generator.adversarial_weight: np.interp(progress, (0, 1), (0, 0))}
+        Generator.mse_weight: np.interp(progress, (0, .5), (1, 0)),
+        Generator.ssim_weight: np.interp(progress, (0, .5), (0, 2)),
+        Generator.adversarial_weight: np.interp(progress, (0, 0.5, 1), (0, 1, 2))}
 
 
 try:
@@ -136,7 +136,7 @@ except (tf.OpError, ValueError) as error:
     print(f'An error occured: {error}')
     print('Assuming network is to be retrained...')
     session.run(tf.global_variables_initializer())
-    train(num_steps=512, loss_weighter=loss_weighter)
+    train(num_steps=4096, loss_weighter=loss_weighter)
     saver.save(session, save_location)
     images.save_gif('./training.gif', demo_outputs)
 
