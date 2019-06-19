@@ -62,7 +62,5 @@ def show(images, save_as=None):
     return to_show
 
 
-def save_gif(path, demo_boards, duration=None):
-    if duration is None:
-        duration = len(images) / 30
-    mimsave(path, demo_boards, duration=duration)
+def save_gif(path, demo_boards, fps=25):
+    mimsave(path, demo_boards, fps=fps)

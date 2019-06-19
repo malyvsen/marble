@@ -3,6 +3,7 @@ from tqdm import trange
 import tensorflow as tf
 import numpy as np
 import random
+import skimage
 import images
 import utils
 
@@ -93,7 +94,7 @@ saver = tf.train.Saver()
 save_location  = 'checkpoints/hybrid.ckpt'
 
 fakes_library = [] # used to prevent instability
-demo_inputs = images.batch(4)[0]
+demo_inputs = [skimage.io.imread('test/elon.jpg')]
 demo_outputs = []
 
 
